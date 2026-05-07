@@ -32,11 +32,47 @@
   </header>
 
   <main class="main">
-    <nav class="tabs" aria-label="View">
-      <a class="tab" href="#restaurants" data-tab="restaurants">Restaurants ({{ restaurants|length }})</a>
-      <a class="tab" href="#events" data-tab="events">Events ({{ events|length }})</a>
-      <a class="tab" href="#diagram" data-tab="diagram">Diagram</a>
-    </nav>
+    <div class="tabsRow">
+      <nav class="tabs" aria-label="Content sections">
+        <a class="tab tabRestaurants" href="#restaurants" data-tab="restaurants">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+            <path d="M7 2v20"></path>
+            <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"></path>
+          </svg>
+          Restaurants ({{ restaurants|length }})
+        </a>
+        <a class="tab tabEvents" href="#events" data-tab="events">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          Events ({{ events|length }})
+        </a>
+        <a class="tab tabDiagram" href="#diagram" data-tab="diagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="18" cy="6" r="3"></circle>
+            <circle cx="12" cy="18" r="3"></circle>
+            <line x1="6" y1="9" x2="12" y2="15"></line>
+            <line x1="18" y1="9" x2="12" y2="15"></line>
+          </svg>
+          Diagram
+        </a>
+      </nav>
+      {% if last_updated %}
+      <span class="tabsClock">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Last updated:
+        <span data-last-updated>{{ last_updated }}</span>
+      </span>
+      {% endif %}
+    </div>
 
     <div class="panels">
       <section id="restaurants" class="panel">
