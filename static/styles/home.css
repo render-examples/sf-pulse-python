@@ -300,15 +300,6 @@
   stroke-linejoin: round;
 }
 
-body:not(:has(:target)) .tabRestaurants,
-.page:has(#restaurants:target) .tabRestaurants,
-.page:has(#events:target) .tabEvents,
-.page:has(#diagram:target) .tabDiagram {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow);
-}
-
 .section {
   display: grid;
   grid-template-rows: auto 1fr;
