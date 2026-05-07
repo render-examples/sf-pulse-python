@@ -200,12 +200,32 @@
 
 .main {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   max-width: 960px;
   width: 100%;
   margin: 0 auto;
   padding: 24px 20px calc(12px + env(safe-area-inset-bottom, 0px));
   min-height: 0;
+  overflow: hidden;
+}
+
+.panels {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  min-height: 0;
+}
+
+.panel:not([hidden]) {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.panel.diagramSection:not([hidden]) {
   overflow: hidden;
 }
 
@@ -264,6 +284,12 @@
   text-decoration: none;
 }
 
+.tab.tabActive {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
 .tab svg {
   width: 14px;
   height: 14px;
@@ -304,11 +330,14 @@ body:not(:has(:target)) .tabRestaurants,
   display: grid;
 }
 
-.page:has(#diagram:target) .diagramSection {
-  display: grid;
+.diagramSection:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .diagramFrameWrap {
+  flex: 1;
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);

@@ -32,71 +32,69 @@
   </header>
 
   <main class="main">
-    {% if last_updated %}
-    <div class="meta">Last updated: <span data-last-updated>{{ last_updated }}</span></div>
-    {% endif %}
-
     <nav class="tabs" aria-label="View">
       <a class="tab" href="#restaurants" data-tab="restaurants">Restaurants ({{ restaurants|length }})</a>
       <a class="tab" href="#events" data-tab="events">Events ({{ events|length }})</a>
       <a class="tab" href="#diagram" data-tab="diagram">Diagram</a>
     </nav>
 
-    <section id="restaurants" class="panel">
-      <table class="dataTable">
-        <thead>
-          <tr><th>Name</th><th>Neighborhood</th><th>Cuisine</th><th>Opened</th></tr>
-        </thead>
-        <tbody data-table="restaurants">
-          {% for r in restaurants %}
-          <tr data-row-id="{{ r.id }}">
-            <td>
-              <div class="cellPrimary"><a class="detailLink" href="/restaurants/{{ r.id }}">{{ r.name }}</a></div>
-              {% if r.address %}<div class="cellSub cellAddress">{{ r.address }}</div>{% endif %}
-              {% if r.source_url %}<a href="{{ r.source_url }}" target="_blank" rel="noopener noreferrer" class="cellSource">Source</a>{% endif %}
-            </td>
-            <td><span class="badge">{{ r.neighborhood }}</span></td>
-            <td class="tableMuted">{{ r.cuisine }}</td>
-            <td class="tableMuted tableDate">{{ r.opened_date }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" class="emptyCell">No restaurants yet — check back after the next refresh.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </section>
+    <div class="panels">
+      <section id="restaurants" class="panel">
+        <table class="dataTable">
+          <thead>
+            <tr><th>Name</th><th>Neighborhood</th><th>Cuisine</th><th>Opened</th></tr>
+          </thead>
+          <tbody data-table="restaurants">
+            {% for r in restaurants %}
+            <tr data-row-id="{{ r.id }}">
+              <td>
+                <div class="cellPrimary"><a class="detailLink" href="/restaurants/{{ r.id }}">{{ r.name }}</a></div>
+                {% if r.address %}<div class="cellSub cellAddress">{{ r.address }}</div>{% endif %}
+                {% if r.source_url %}<a href="{{ r.source_url }}" target="_blank" rel="noopener noreferrer" class="cellSource">Source</a>{% endif %}
+              </td>
+              <td><span class="badge">{{ r.neighborhood }}</span></td>
+              <td class="tableMuted">{{ r.cuisine }}</td>
+              <td class="tableMuted tableDate">{{ r.opened_date }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="emptyCell">No restaurants yet — check back after the next refresh.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
 
-    <section id="events" class="panel" hidden>
-      <table class="dataTable">
-        <thead>
-          <tr><th>Title</th><th>Neighborhood</th><th>Category</th><th>Time</th><th>Date</th></tr>
-        </thead>
-        <tbody data-table="events">
-          {% for e in events %}
-          <tr data-row-id="{{ e.id }}">
-            <td>
-              <div class="cellPrimary"><a class="detailLink" href="/events/{{ e.id }}">{{ e.title }}</a></div>
-              {% if e.location %}<div class="cellSub cellAddress">{{ e.location }}</div>{% endif %}
-              {% if e.description %}<div class="cellSub eventDescription">{{ e.description }}</div>{% endif %}
-              {% if e.source_url %}<a href="{{ e.source_url }}" target="_blank" rel="noopener noreferrer" class="cellSource">Source</a>{% endif %}
-            </td>
-            <td><span class="badge">{{ derive_event_neighborhood(e) }}</span></td>
-            <td class="tableMuted">{{ format_event_category(derive_event_category(e)) }}</td>
-            <td class="tableMuted tableDate">{{ e.time or "—" }}</td>
-            <td class="tableMuted tableDate">{{ e.date }}</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="emptyCell">No events yet — check back after the next refresh.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </section>
+      <section id="events" class="panel" hidden>
+        <table class="dataTable">
+          <thead>
+            <tr><th>Title</th><th>Neighborhood</th><th>Category</th><th>Time</th><th>Date</th></tr>
+          </thead>
+          <tbody data-table="events">
+            {% for e in events %}
+            <tr data-row-id="{{ e.id }}">
+              <td>
+                <div class="cellPrimary"><a class="detailLink" href="/events/{{ e.id }}">{{ e.title }}</a></div>
+                {% if e.location %}<div class="cellSub cellAddress">{{ e.location }}</div>{% endif %}
+                {% if e.description %}<div class="cellSub eventDescription">{{ e.description }}</div>{% endif %}
+                {% if e.source_url %}<a href="{{ e.source_url }}" target="_blank" rel="noopener noreferrer" class="cellSource">Source</a>{% endif %}
+              </td>
+              <td><span class="badge">{{ derive_event_neighborhood(e) }}</span></td>
+              <td class="tableMuted">{{ format_event_category(derive_event_category(e)) }}</td>
+              <td class="tableMuted tableDate">{{ e.time or "—" }}</td>
+              <td class="tableMuted tableDate">{{ e.date }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="emptyCell">No events yet — check back after the next refresh.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
 
-    <section id="diagram" class="panel diagramSection" hidden>
-      <div class="diagramFrameWrap">
-        <iframe class="diagramFrame" src="/diagram/" title="Daily refresh workflow diagram" loading="lazy"></iframe>
-      </div>
-    </section>
+      <section id="diagram" class="panel diagramSection" hidden>
+        <div class="diagramFrameWrap">
+          <iframe class="diagramFrame" src="/diagram/" title="Daily refresh workflow diagram" loading="lazy"></iframe>
+        </div>
+      </section>
+    </div>
   </main>
 </div>
 

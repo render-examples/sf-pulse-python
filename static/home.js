@@ -29,7 +29,7 @@
       e.preventDefault()
       const target = t.dataset.tab
       if (!target) return
-      window.location.hash = target
+      history.replaceState(null, '', '#' + target)
       showPanel(target)
     })
   }
