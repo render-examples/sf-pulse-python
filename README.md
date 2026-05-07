@@ -1,4 +1,4 @@
-# SF Pulse (Python)
+# SF Pulse
 
 SF Pulse tracks new San Francisco restaurant openings and local events.
 This is the **Python port** of [`render-examples/sf-pulse-ts`](https://github.com/render-examples/sf-pulse-ts) — a FastAPI + asyncpg + Render Workflows reference app showcasing the [Render Python SDK](https://github.com/render-oss/sdk/tree/main/python).
