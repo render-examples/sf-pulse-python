@@ -10,4 +10,22 @@ if (root) {
       <WorkflowDiagram />
     </StrictMode>,
   )
+
+  if (window.parent !== window) {
+    const post = () => {
+      const height = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+      )
+      window.parent.postMessage(
+        { type: 'sf-pulse-diagram-resize', height },
+        '*',
+      )
+    }
+    const ro = new ResizeObserver(post)
+    ro.observe(document.documentElement)
+    ro.observe(document.body)
+    window.addEventListener('load', post)
+    post()
+  }
 }

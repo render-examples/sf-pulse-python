@@ -337,8 +337,7 @@ body:not(:has(:target)) .tabRestaurants,
 }
 
 .diagramFrameWrap {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -347,9 +346,18 @@ body:not(:has(:target)) .tabRestaurants,
 
 .diagramFrame {
   width: 100%;
-  height: 100%;
+  height: 600px;
   border: 0;
   display: block;
+}
+
+.page:has(.diagramSection:not([hidden])) .main {
+  max-width: 1400px;
+  overflow: auto;
+}
+
+.page:has(.diagramSection:not([hidden])) .panel.diagramSection:not([hidden]) {
+  overflow: visible;
 }
 
 .sectionHeader {

@@ -36,6 +36,16 @@
   window.addEventListener('hashchange', activatePanelFromHash)
   activatePanelFromHash()
 
+  // ── Diagram iframe auto-sizing ───────────────────────────────────────────────
+  window.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'sf-pulse-diagram-resize') return
+    const frame = document.querySelector('.diagramFrame')
+    if (!frame) return
+    const height = Number(event.data.height)
+    if (!Number.isFinite(height) || height <= 0) return
+    frame.style.height = height + 'px'
+  })
+
   // ── SSE realtime updates ─────────────────────────────────────────────────────
   let source
   function connectSSE() {
