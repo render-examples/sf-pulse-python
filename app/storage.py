@@ -152,6 +152,23 @@ def _to_iso_date(value: Any) -> str | None:
     return None
 
 
+def _to_date(value: Any) -> date | None:
+    # asyncpg requires real `date` objects for typed-`date` columns;
+    # derive_structured_date() returns ISO strings, so coerce here.
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return None
+    return None
+
+
 def _row_to_restaurant(row: asyncpg.Record | dict) -> StoredRestaurant:
     data = dict(row)
     opened_start = _to_iso_date(data.get("opened_start_date"))
@@ -300,8 +317,8 @@ async def add_restaurant(
         r.cuisine,
         r.address,
         r.opened_date,
-        structured.start_date,
-        structured.end_date,
+        _to_date(structured.start_date),
+        _to_date(structured.end_date),
         structured.date_precision,
         structured.is_upcoming,
         r.source_url,
@@ -343,8 +360,8 @@ async def update_restaurant(
         r.cuisine,
         r.address,
         r.opened_date,
-        structured.start_date,
-        structured.end_date,
+        _to_date(structured.start_date),
+        _to_date(structured.end_date),
         structured.date_precision,
         structured.is_upcoming,
         r.source_url,
@@ -385,8 +402,8 @@ async def update_event(
         e.title,
         e.location,
         e.date,
-        structured.start_date,
-        structured.end_date,
+        _to_date(structured.start_date),
+        _to_date(structured.end_date),
         structured.date_precision,
         structured.is_upcoming,
         dedupe_key,
@@ -473,8 +490,8 @@ async def add_event(e: NewEvent, *, pool: asyncpg.Pool | None = None) -> StoredE
         e.title,
         e.location,
         e.date,
-        structured.start_date,
-        structured.end_date,
+        _to_date(structured.start_date),
+        _to_date(structured.end_date),
         structured.date_precision,
         structured.is_upcoming,
         dedupe_key,

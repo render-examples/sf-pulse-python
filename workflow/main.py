@@ -30,4 +30,4 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    app.run()
+    app.start()

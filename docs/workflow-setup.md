@@ -42,24 +42,34 @@ run = client.workflows.run_task(f"{slug}/daily-refresh", [])
 
 ## 4. Test locally
 
-You can run the worker locally with the Render CLI:
+There are two supported flows.
+
+### A. Seed Postgres directly (no Workflows runtime)
+
+The fastest way to populate a local database. Bypasses the Render Workflows SDK entirely and calls the source scrapers + `apply_discovered_items` in-process:
+
+```sh
+uv run python -c "import asyncio; from app.refresh import run_daily_refresh; asyncio.run(run_daily_refresh())"
+```
+
+This is the recommended path for local development and for the smoke tests in `tests/test_refresh.py`.
+
+> Note: calling `daily_refresh()` from `workflow.tasks.daily_refresh` directly does **not** work — it's wrapped by `@app.task` and requires the workflow runtime's `current_client` ContextVar.
+
+### B. Run the full Workflows dev server
+
+To exercise the SDK boundary (task registration, retry, subtask fan-out), run the worker under the Render CLI:
 
 ```sh
 render workflows dev -- python -m workflow.main
 ```
 
-Then in another terminal, trigger a task manually:
+Then in another terminal, trigger the task manually:
 
 ```python
 from render_sdk import Render
 r = Render()
 r.workflows.run_task("sf-pulse-python-workflow/daily-refresh", [])
-```
-
-Or hit the orchestrator directly without the Workflows runtime:
-
-```sh
-uv run python -c "import asyncio; from workflow.tasks.daily_refresh import daily_refresh; asyncio.run(daily_refresh())"
 ```
 
 ## Troubleshooting

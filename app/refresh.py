@@ -6,6 +6,7 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Iterable
 
 import asyncpg
@@ -39,6 +40,7 @@ class ApplyDiscoveredItemsResult:
     added_restaurants: list[str] = field(default_factory=list)
     added_events: list[str] = field(default_factory=list)
     updated_restaurants: list[str] = field(default_factory=list)
+    updated_events: list[str] = field(default_factory=list)
 
 
 DATE_PRECISION_SCORE: dict[DatePrecision, int] = {
@@ -517,6 +519,7 @@ async def apply_discovered_items(
         persisted = await storage.update_event(match.id, merged, pool=pool)
         update = await storage.record_update("event", persisted.title, "updated", pool=pool)
         versions.append(update.occurred_at.isoformat())
+        result.updated_events.append(persisted.title)
         updated_e_rows.append(persisted)
         for idx, item in enumerate(existing_e):
             if item.id == match.id:
@@ -552,3 +555,145 @@ async def apply_discovered_items(
         await _push_to_interested([*added_r_rows, *updated_r_rows], added_e_rows, pool=pool)
 
     return result
+
+
+# ── Daily refresh orchestrator ────────────────────────────────────────────────
+
+
+def _settled[T](result: object, label: str, fallback: T) -> T:
+    if isinstance(result, BaseException):
+        log.warning("[refresh] source failed (%s): %r", label, result)
+        return fallback
+    return result  # type: ignore[return-value]
+
+
+def dedup_restaurants(items: list[storage.NewRestaurant]) -> list[storage.NewRestaurant]:
+    seen: set[str] = set()
+    out: list[storage.NewRestaurant] = []
+    for r in items:
+        key = r.name.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
+def dedup_events(items: list[storage.NewEvent]) -> list[storage.NewEvent]:
+    seen: set[str] = set()
+    out: list[storage.NewEvent] = []
+    for e in items:
+        key = build_event_identity_key(title=e.title, location=e.location, date_text=e.date)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(e)
+    return out
+
+
+async def run_daily_refresh(*, pool: asyncpg.Pool | None = None) -> dict[str, int]:
+    """Run one refresh cycle locally without the Render Workflows runtime.
+
+    Mirrors the orchestration in workflow.tasks.daily_refresh but calls the
+    plain async source functions directly. Use this for local seeding and tests.
+    """
+    from app.config import get_settings
+    from app.llm import get_llm_client
+    from app.llm.pipeline import (
+        extract_events_from_articles,
+        extract_restaurants_from_articles,
+    )
+    from app.sources.cal_academy import fetch_cal_academy_events
+    from app.sources.ddg_search import search_events_ddg, search_restaurants_ddg
+    from app.sources.eater import fetch_eater_sf_articles
+    from app.sources.famsf import fetch_famsf_events
+    from app.sources.funcheap import fetch_funcheap_events
+    from app.sources.michelin import fetch_michelin_restaurants
+    from app.sources.sfist import fetch_sfist_restaurants
+
+    log.info("[refresh] SF Pulse refresh — %s", datetime.now(UTC).isoformat())
+
+    settings = get_settings()
+    llm = get_llm_client() if settings.llm_api_key else None
+    if llm:
+        log.info("[refresh] LLM client configured, using LLM extraction")
+    else:
+        log.info(
+            "[refresh] no LLM_API_KEY set, using regex-only sources (SFist, Michelin)"
+        )
+
+    log.info("[refresh] fetching restaurant sources...")
+    eater_raw, sfist_raw, michelin_raw, ddg_r_raw = await asyncio.gather(
+        fetch_eater_sf_articles(),
+        fetch_sfist_restaurants(),
+        fetch_michelin_restaurants(),
+        search_restaurants_ddg(),
+        return_exceptions=True,
+    )
+
+    eater_articles = _settled(eater_raw, "Eater SF", [])
+    sfist_items = _settled(sfist_raw, "SFist", [])
+    michelin_items = _settled(michelin_raw, "Michelin", [])
+    ddg_restaurant_articles = _settled(ddg_r_raw, "DDG restaurants", [])
+
+    log.info("[refresh] fetching event sources...")
+    funcheap_raw, famsf_raw, cal_academy_raw, ddg_e_raw = await asyncio.gather(
+        fetch_funcheap_events(),
+        fetch_famsf_events(),
+        fetch_cal_academy_events(),
+        search_events_ddg(),
+        return_exceptions=True,
+    )
+
+    funcheap_events = _settled(funcheap_raw, "Funcheap", [])
+    famsf_events = _settled(famsf_raw, "FAMSF", [])
+    cal_academy_events = _settled(cal_academy_raw, "Cal Academy", [])
+    ddg_event_articles = _settled(ddg_e_raw, "DDG events", [])
+
+    llm_restaurants: list[storage.NewRestaurant] = []
+    llm_events: list[storage.NewEvent] = []
+
+    if llm is not None:
+        log.info("[refresh] running LLM extraction...")
+        r_results, e_results = await asyncio.gather(
+            asyncio.gather(
+                extract_restaurants_from_articles(llm, eater_articles),
+                extract_restaurants_from_articles(llm, ddg_restaurant_articles),
+                return_exceptions=True,
+            ),
+            asyncio.gather(
+                extract_events_from_articles(llm, ddg_event_articles),
+                return_exceptions=True,
+            ),
+            return_exceptions=True,
+        )
+
+        if not isinstance(r_results, BaseException):
+            for r in r_results:
+                llm_restaurants.extend(_settled(r, "LLM restaurants", []))
+
+        if not isinstance(e_results, BaseException):
+            for e in e_results:
+                llm_events.extend(_settled(e, "LLM events", []))
+
+        log.info(
+            "[refresh] LLM extracted: %d restaurants, %d events",
+            len(llm_restaurants),
+            len(llm_events),
+        )
+
+    restaurants = dedup_restaurants([*sfist_items, *michelin_items, *llm_restaurants])
+    events = dedup_events([*funcheap_events, *famsf_events, *cal_academy_events, *llm_events])
+
+    log.info(
+        "[refresh] candidates: %d restaurants, %d events",
+        len(restaurants),
+        len(events),
+    )
+
+    if restaurants or events:
+        await apply_discovered_items(restaurants=restaurants, events=events, pool=pool)
+    else:
+        log.info("[refresh] nothing new")
+
+    return {"restaurants": len(restaurants), "events": len(events)}

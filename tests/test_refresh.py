@@ -88,6 +88,34 @@ async def test_apply_discovered_items_updates_on_changed_field(
     assert result.updated_restaurants == ["Joe's"]
 
 
+async def test_run_daily_refresh_works_without_workflows_runtime(monkeypatch) -> None:
+    """Local-seed entrypoint must run without the Render Workflows SDK runtime.
+
+    Regression guard: calling daily_refresh() (the @app.task) outside the runtime
+    fails with a ContextVar LookupError. run_daily_refresh() is the plain path
+    documented for local seeding and must keep working. With all sources empty
+    the DB is never touched, so this test runs without Docker.
+    """
+
+    async def _empty() -> list:
+        return []
+
+    for path in (
+        "app.sources.eater.fetch_eater_sf_articles",
+        "app.sources.sfist.fetch_sfist_restaurants",
+        "app.sources.michelin.fetch_michelin_restaurants",
+        "app.sources.ddg_search.search_restaurants_ddg",
+        "app.sources.ddg_search.search_events_ddg",
+        "app.sources.funcheap.fetch_funcheap_events",
+        "app.sources.famsf.fetch_famsf_events",
+        "app.sources.cal_academy.fetch_cal_academy_events",
+    ):
+        monkeypatch.setattr(path, _empty)
+
+    result = await refresh.run_daily_refresh()
+    assert result == {"restaurants": 0, "events": 0}
+
+
 async def test_push_skipped_when_vapid_not_configured(
     clean_db: asyncpg.Pool, monkeypatch, caplog
 ) -> None:

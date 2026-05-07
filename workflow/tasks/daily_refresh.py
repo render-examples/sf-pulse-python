@@ -12,7 +12,7 @@ from app.llm.pipeline import (
     extract_events_from_articles,
     extract_restaurants_from_articles,
 )
-from app.shared.identity import build_event_identity_key
+from app.refresh import dedup_events, dedup_restaurants
 from app.sources.types import RawArticle
 from app.storage import NewEvent, NewRestaurant
 from workflow._app import app
@@ -38,44 +38,30 @@ def _settled(result: Any, label: str, fallback: T) -> T:
     return result
 
 
-def _to_raw_articles(items: list[dict[str, Any]]) -> list[RawArticle]:
-    return [RawArticle.model_validate(item) for item in items]
+def _coerce_list(items: Any) -> list[dict[str, Any]]:
+    # The Render Workflows SDK auto-unwraps single-element list results when a
+    # subtask returns a list of length 1 (see render_sdk/workflows/client.py
+    # `run_subtask`). That means a fetcher returning [one_dict] comes back here
+    # as one_dict, not [one_dict]. Normalize so the conversion shims see a list.
+    if items is None:
+        return []
+    if isinstance(items, dict):
+        return [items]
+    if isinstance(items, list):
+        return items
+    return []
 
 
-def _to_new_restaurants(items: list[dict[str, Any]]) -> list[NewRestaurant]:
-    return [NewRestaurant(**item) for item in items]
+def _to_raw_articles(items: Any) -> list[RawArticle]:
+    return [RawArticle.model_validate(item) for item in _coerce_list(items)]
 
 
-def _to_new_events(items: list[dict[str, Any]]) -> list[NewEvent]:
-    return [NewEvent(**item) for item in items]
+def _to_new_restaurants(items: Any) -> list[NewRestaurant]:
+    return [NewRestaurant(**item) for item in _coerce_list(items)]
 
 
-def _dedup_restaurants(items: list[NewRestaurant]) -> list[NewRestaurant]:
-    seen: set[str] = set()
-    result: list[NewRestaurant] = []
-    for r in items:
-        key = r.name.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(r)
-    return result
-
-
-def _dedup_events(items: list[NewEvent]) -> list[NewEvent]:
-    seen: set[str] = set()
-    result: list[NewEvent] = []
-    for e in items:
-        key = build_event_identity_key(
-            title=e.title,
-            location=e.location,
-            date_text=e.date,
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(e)
-    return result
+def _to_new_events(items: Any) -> list[NewEvent]:
+    return [NewEvent(**item) for item in _coerce_list(items)]
 
 
 @app.task(name="daily-refresh", timeout_seconds=600)
@@ -153,10 +139,10 @@ async def daily_refresh() -> dict[str, int]:
             len(llm_events),
         )
 
-    restaurants = _dedup_restaurants(
+    restaurants = dedup_restaurants(
         [*sfist_items, *michelin_items, *llm_restaurants]
     )
-    events = _dedup_events(
+    events = dedup_events(
         [*funcheap_events, *famsf_events, *cal_academy_events, *llm_events]
     )
 

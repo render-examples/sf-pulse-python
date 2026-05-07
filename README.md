@@ -142,11 +142,13 @@ Open <http://localhost:8000>.
 ### Trigger an initial data load
 
 ```sh
-# Run the orchestrator locally (requires LLM_API_KEY for full coverage):
-uv run python -c "import asyncio; from workflow.tasks.daily_refresh import daily_refresh; asyncio.run(daily_refresh())"
+# Seed local Postgres directly — no Workflows runtime required:
+uv run python -c "import asyncio; from app.refresh import run_daily_refresh; asyncio.run(run_daily_refresh())"
 ```
 
-Or use `render workflows dev -- python -m workflow.main` for the local Workflows runtime.
+Set `LLM_API_KEY` for full coverage; without it only the regex sources (SFist, Michelin, FunCheap, FAMSF, Cal Academy) produce results.
+
+To exercise the Render Workflows runtime locally instead, run `render workflows dev -- python -m workflow.main` and trigger `daily-refresh` from a second terminal — see [`docs/workflow-setup.md`](docs/workflow-setup.md).
 
 ## Tests
 
