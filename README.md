@@ -6,7 +6,7 @@ The interactive workflow diagram is preserved as a small Vite + React sub-projec
 
 ## Deploy to Render
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Frender-examples%2Fsf-pulse-python)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy-template/api/github/start?template_repo=sf-pulse-python)
 
 `render.yaml` provisions:
 
